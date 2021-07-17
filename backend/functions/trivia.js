@@ -13,11 +13,15 @@ async function check_status(db, phone_number, user_input) {
     if (!user.exists) {
         // create document
         create_user(db, phone_number)
-        welcomemsg = "Welcome to TrivUs!!! We are very excited to have you on board! Do you want to play trivia?"
+        welcomemsg = "Welcome to TrivUs!!! We are very excited to have you on board! What should we call you?"
         return welcomemsg
     }
     const status = user.data["status"]
-    if (status == "") {
+    if (status == "name") {
+        set_username(db, phone_number, user_input)
+        set_status(db, phone_number, "")
+        return start_trivia()
+    } else if (status == "") {
         if (user_input == "1") {
             set_status(db, phone_number, "start")
             return show_question_number()
@@ -60,23 +64,23 @@ async function check_status(db, phone_number, user_input) {
             if (user_input > 0 && user_input <= 3) {
                 set_difficulty(db, phone_number, user_input)
                 set_status(db, phone_number, "trivia_time")
+                set_quiz_index(db, phone_number, 1)
                 return show_questions()
             }
         } catch {
             msg += "Invalid difficulty.\n"
         }
         return msg + show_difficulty()
-    }
-
-
-    if (status == "trivia_time") {
-        if (check_trivia_answer(db, phone_number, res)) {
+    } else if (status == "trivia_time") {
+        if (check_trivia_answer(db, phone_number, user_input)) {
             msg = "Great Job!\n"
         } else {
-            msg = "Better Luck next time\n The correct answer for that was" + user["session"]["last_answer"] + "\n"
+            msg = "Better Luck next time\n The correct answer for that was" + get_last_answer(user) + "\n"
         }
         return msg + get_trivia_q(db, phone_number)
-    } else if (status == "starting") {
+    } 
+    
+     if (status == "starting") {
         // show scoreboard
         return scoreboard(db, phone_number)
     } else if (status == "done") {
@@ -102,7 +106,8 @@ function set_status(db, phone_number, status) {
         .doc(profile)
         .set(data)
 }
-function start_session(db, phone_number, num_questions) {
+
+async function start_session(db, phone_number, num_questions) {
     const data = {
         session: {
             current_score: 0,
@@ -110,7 +115,19 @@ function start_session(db, phone_number, num_questions) {
             quiz_index: 0
         }
     }
-    const res = await db.collection('trivia').doc(phone_number).set(data);
+    await db.collection('trivia').doc(phone_number).set(data);
+}
+
+function set_username(db, phone_number, name) {
+    data = {
+        username: name
+    }
+    // change status to "start"
+    db.collection("trivia")
+        .doc(phone_number)
+        .doc(profile)
+        .set(data)
+}
 
 function set_category(db, phone_number, category) {
     data = {
@@ -134,8 +151,23 @@ function set_difficulty(db, phone_number, difficulty) {
         .set(data)
 }
 
+function set_quiz_index(db, phone_number, index) {
+    data = {
+        quiz_index: index
+    }
+    // change status to "start"
+    db.collection("trivia")
+        .doc(phone_number)
+        .doc(session)
+        .set(data)
+}
+
+function show_trivia(name) {
+    return "Hi " + name + "! Do you want to play trivia?"
+}
+
 function show_question_number() {
-    return "Great! Lets Play Trivia!\n How many trivia questions would you like (1-50)?"
+    return "Great Choice " + name + "! Lets Play Trivia!\n How many trivia questions would you like (1-50)?"
 }
 
 function show_difficulty() {
@@ -198,10 +230,11 @@ async function get_trivia_q(db, phone_number, user) {
     next_q = user["session"]["quiz_index"]
     try {
         question = user["session"]["quiz_questions"][next_q]
+        set_quiz_index(db, phone_number, next_q+1)
     } catch {
         // Out of Questions
         set_status(db, phone_number, "")
-        return current_score(db, phone_number, user)
+        return current_score(db, phone_number, user) + "\n" + scoreboard(db, phone_number, user)
     }
     return next_q
 }
@@ -213,7 +246,10 @@ function check_trivia_answer(user, user_answer) {
     }
     return False
 }
-
+function get_last_answer(user) {
+    last_q = user["session"]["quiz_index"]
+    return user["session"]["quiz_questions"][last_q]
+}
 
 async function create_user(db, phone_number) {
     const data = {
