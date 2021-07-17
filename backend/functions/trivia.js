@@ -1,10 +1,10 @@
 /* statuses: 
-    - "" - new account (ask if want to play trivia)
+    - new account (ask for username)
     - "start" - want to start trivia (ask for options - number of qs)
     - "difficulty" - want to start trivia (ask for options - difficulty)
     - "category" - want to start trivia (ask for options - category)
     - "trivia_time" - in the process of trivia (check answer + get next q - if done, get score of current round)
-    - "" - done with trivia (view total score)
+    - "" - ask if they want to play trivia
 */
 async function check_status(db, phone_number, user_input) {
     const user = db.collection("trivia")
@@ -20,7 +20,7 @@ async function check_status(db, phone_number, user_input) {
     if (status == "name") {
         set_username(db, phone_number, user_input)
         set_status(db, phone_number, "")
-        return start_trivia()
+        return start_trivia(user["username"])
     } else if (status == "") {
         if (user_input == "1") {
             set_status(db, phone_number, "start")
@@ -41,7 +41,7 @@ async function check_status(db, phone_number, user_input) {
         } catch {
             msg += "Invalid number of questions.\n"
         }
-        return msg + show_question_number()
+        return msg + show_question_number(user["username"])
     } else if (status == "category") {
         // if user input between 1-3, ask difficulty
         msg = ""
@@ -72,28 +72,22 @@ async function check_status(db, phone_number, user_input) {
         }
         return msg + show_difficulty()
     } else if (status == "trivia_time") {
+        // if no questions in list, add
+        if (user["session"]["quiz_questions"].length() == 0) {
+            set_trivia_questions(db, phone_number, user)
+            return "Cool! Lets get started!\n" + get_trivia_q(db, phone_number, user)
+        }
+        // else check answers
         if (check_trivia_answer(db, phone_number, user_input)) {
             msg = "Great Job!\n"
         } else {
             msg = "Better Luck next time\n The correct answer for that was" + get_last_answer(user) + "\n"
         }
-        return msg + get_trivia_q(db, phone_number)
-    } 
+        return msg + get_trivia_q(db, phone_number, user)
+    } else {
+        return scoreboard(user)
+    }
     
-     if (status == "starting") {
-        // show scoreboard
-        return scoreboard(db, phone_number)
-    } else if (status == "done") {
-        // show scoreboard
-        return scoreboard(db, phone_number)
-    } else if (status == "none") {
-        if (user_input == "start?") {
-            return start_trivia(db, phone_number)
-        } else {
-            // show scoreboard
-            return scoreboard(db, phone_number)
-        }
-    } 
 }
 
 function set_status(db, phone_number, status) {
@@ -112,7 +106,8 @@ async function start_session(db, phone_number, num_questions) {
         session: {
             current_score: 0,
             num_questions: num_questions,
-            quiz_index: 0
+            quiz_index: 0,
+            quiz_questions: []
         }
     }
     await db.collection('trivia').doc(phone_number).set(data);
@@ -162,11 +157,40 @@ function set_quiz_index(db, phone_number, index) {
         .set(data)
 }
 
+function set_trivia_questions(db, phone_number, user) {
+    difficulty = user["session"]["difficulty"]
+    num_qs = user["session"]["num_questions"]
+    category = user["session"]["category"]
+    questions = fetchOpenTrivia(num_qs, category, difficulty)
+    quiz_questions = []
+    for (question in questions) {
+        const q = question["question"]
+        const a = question["correct_answer"]
+        var ans = question["incorrect_answers"]
+        ans.push(a)
+        var ans_list = []
+        while (ans.length() > 0) {
+            next_index = Math.floor(Math.random() * (ans.length()))
+            ans_list.push(ans[next_index])
+            ans.pop(next_index)
+        }
+        answer = ans_list.indexOf(a)
+        quiz_questions.push({question: q, answer_index: answer, answer_list: ans_list})
+    }
+    data = {
+        quiz_questions: quiz_questions
+    }
+    db.collection("trivia")
+        .doc(phone_number)
+        .doc(session)
+        .set(data)
+}
+
 function show_trivia(name) {
     return "Hi " + name + "! Do you want to play trivia?"
 }
 
-function show_question_number() {
+function show_question_number(name) {
     return "Great Choice " + name + "! Lets Play Trivia!\n How many trivia questions would you like (1-50)?"
 }
 
@@ -191,6 +215,7 @@ function get_category(category_num) {
         "History",
         "Animals",
         "Vehicles",
+        "All Categories"
     ]
     const categories = {
         "General Knowledge": 9,
@@ -201,6 +226,7 @@ function get_category(category_num) {
         "History": 23,
         "Animals": 27,
         "Vehicles": 28,
+        "All Categories": "all"
     }
     category = list_categories.findIndex(category_num)
     return categories[category]
@@ -226,29 +252,39 @@ function show_categories() {
     return category_string
 }
 
-async function get_trivia_q(db, phone_number, user) {
+
+function get_trivia_q(db, phone_number, user) {
     next_q = user["session"]["quiz_index"]
     try {
-        question = user["session"]["quiz_questions"][next_q]
+        question = user["session"]["quiz_questions"][next_q]["question"]
+        answer_list = user["session"]["quiz_questions"][next_q]["answer_list"]
+        answers = ""
+        index = 1
+        for (answer in answer_list) {
+            answers += str(index) + " - " + str(answer) + "\n"
+        }
         set_quiz_index(db, phone_number, next_q+1)
+        return question + "\n" + answers
     } catch {
         // Out of Questions
         set_status(db, phone_number, "")
         return current_score(db, phone_number, user) + "\n" + scoreboard(db, phone_number, user)
     }
-    return next_q
 }
 
 function check_trivia_answer(user, user_answer) {
-    const answer = user["last_answer"]
-    if (user_answer.toLowerCase() != answer.toLowerCase()) {
+    const answer_index = user["session"]["quiz_index"]
+    const answer = user["session"]["quiz_questions"][answer_index]["answer_index"]
+    if (int(user_answer)-1 == int(answer)) {
         return True
     }
     return False
 }
+
 function get_last_answer(user) {
     last_q = user["session"]["quiz_index"]
-    return user["session"]["quiz_questions"][last_q]
+    last_q_answer_index = user["session"]["quiz_questions"][last_q]["answer_index"]
+    return user["session"]["quiz_questions"][last_q]["answer_list"][last_q_answer_index]
 }
 
 async function create_user(db, phone_number) {
