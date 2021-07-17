@@ -1,7 +1,10 @@
 const functions = require("firebase-functions");
+const express = require("express");
+const app = express();
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = require('twilio')(accountSid, authToken);
+const MessagingResponse = require('twilio').twiml.MessagingResponse;
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
@@ -11,11 +14,20 @@ const client = require('twilio')(accountSid, authToken);
 //   response.send("Hello from Firebase!");
 // });
 
-client.messages
-  .create({
-     body: 'This is the ship that made the Kessel Run in fourteen parsecs?',
-     from: '+15017122661',
-     to: '+15558675310'
-   })
-  .then(message => console.log(message.sid));
+app.post("/trivia/sms", (request, response) => {
+    // Welcome message
+    msg = "Welcome to TrivUs"
+
+    // Trivia questions
+    msg = "Trivia Q1...10"
+
+    // Scoreboard
+    msg = "Your score: ____"
+
+    const twiml = new MessagingResponse();
+      twiml.message(msg);
+      res.writeHead(200, { 'Content-Type': 'text/xml' });
+      res.end(twiml.toString());
+  });
+
 
