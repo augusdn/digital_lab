@@ -3,7 +3,7 @@
     - "start" - want to start trivia (ask for options - number of qs)
     - "difficulty" - want to start trivia (ask for options - difficulty)
     - "category" - want to start trivia (ask for options - category)
-    - "answering" - in the process of trivia (check answer + get next q - if done, get score of current round)
+    - "trivia_time" - in the process of trivia (check answer + get next q - if done, get score of current round)
     - "" - done with trivia (view total score)
 */
 async function check_status(db, phone_number, res) {
@@ -17,12 +17,20 @@ async function check_status(db, phone_number, res) {
         return welcomemsg
     }
     const status = user.data["status"]
-    if (status == "answering") {
-        if (check_trivia_answer(db, phone_number, res)) {
-            return "Great Job!\n" + get_trivia_q(db, phone_number)
-        } else {
-            return "Better Luck next time\n" + get_trivia_q(db, phone_number)
+    if (status == "") {
+        if (res) {
+            db.collection("trivia")
+                .doc(phone_number)
+            return show_trivia()
         }
+    }
+    if (status == "trivia_time") {
+        if (check_trivia_answer(db, phone_number, res)) {
+            msg = "Great Job!\n"
+        } else {
+            msg = "Better Luck next time\n The correct answer for that was" + user["session"]["last_answer"] + "\n"
+        }
+        return msg + get_trivia_q(db, phone_number)
     } else if (status == "starting") {
         // show scoreboard
         return scoreboard(db, phone_number)
@@ -49,7 +57,17 @@ function show_difficulty() {
     return difficulty_string
 }
 
-function show_categories() {
+function get_category(db, phone_number, category) {
+    const list_categories = [
+        "General Knowledge",
+        "Science & Nature",
+        "Mythology",
+        "Sports",
+        "Geography",
+        "History",
+        "Animals",
+        "Vehicles",
+    ]
     const categories = {
         "General Knowledge": 9,
         "Science & Nature": 17,
@@ -60,6 +78,20 @@ function show_categories() {
         "Animals": 27,
         "Vehicles": 28,
     }
+    category = index
+}
+
+function show_categories() {
+    const categories = [
+        "General Knowledge",
+        "Science & Nature",
+        "Mythology",
+        "Sports",
+        "Geography",
+        "History",
+        "Animals",
+        "Vehicles",
+    ]
     var category_string = "Pick your category!!!\n"
     var index = 1
     for (category in categories) {
@@ -86,13 +118,12 @@ function check_trivia_answer(user, user_answer) {
     return False
 }
 
-async function start_trivia(db, phone_number, num_questions) {
+async function get_trivia_info(db, phone_number, num_questions) {
     const data = {
-        next_question: "",
-        last_answer: "",
-        question_list: [],
-        current_score: 0,
-        num_questions: num_questions
+        session: {
+            current_score: 0,
+            num_questions: num_questions
+        }
     }
     const res = await db.collection('trivia').doc(phone_number).set(data);
     const next_q = db.collection("trivia")
@@ -106,8 +137,10 @@ async function start_trivia(db, phone_number, num_questions) {
 
 async function create_user(db, phone_number) {
     const data = {
-        total_score: 0,
-        status: ""
+        profile: {
+            total_score: 0,
+            status: ""
+        }
     }
     await db.collection('trivia').doc(phone_number).set(data);
 }
@@ -121,7 +154,3 @@ function scoreboard(user) {
     const score = user["total_score"]
     return "You currently have a total score of " + str(score) + "\n"
 }
-
-// We should keep a total score of all trivias
-// Each trivia play will have a different score/qs
-// Should we save ^ + all the qs, answers, and answers they got???
