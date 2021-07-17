@@ -3,13 +3,24 @@ const express = require("express");
 const app = express();
 const MessagingResponse = require('twilio').twiml.MessagingResponse;
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//   functions.logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+
+// const firebase = require("firebase");
+
+// cors settings
+const cors = require('cors');
+app.use(cors({ origin: true }));
+
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+app.get('/', (req, res) => {
+    res.contentType("text/xml");
+    res.send(`
+        <Response>
+            <Message> Good Luck! </Message>
+        </Response>
+    `);
+});
 
 app.post("/trivia/sms", (request, response) => {
     const twiml = new MessagingResponse();
@@ -36,11 +47,13 @@ app.post("/trivia/sms", (request, response) => {
     response.end(twiml.toString());
 });
 
-// save current users state
+exports.api = functions.region('australia-southeast1').https.onRequest(app);
 
-// ask q
-
-// give answer
-
-// score
+// // Create and Deploy Your First Cloud Functions
+// // https://firebase.google.com/docs/functions/write-firebase-functions
+//
+// exports.helloWorld = functions.https.onRequest((request, response) => {
+//   functions.logger.info("Hello logs!", {structuredData: true});
+//   response.send("Hello from Firebase!");
+// });
 
