@@ -1,5 +1,27 @@
 const functions = require("firebase-functions");
 
+const express = require("express");
+const app = express();
+// const firebase = require("firebase");
+
+// cors settings
+const cors = require('cors');
+app.use(cors({ origin: true }));
+
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+app.get('/', (req, res) => {
+    res.contentType("text/xml");
+    res.send(`
+        <Response>
+            <Message> Good Luck! </Message>
+        </Response>
+    `);
+});
+
+exports.api = functions.region('australia-southeast1').https.onRequest(app);
+
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
