@@ -26,15 +26,49 @@ async function check_status(db, phone_number, user_input) {
         }
     } else if (status == "start") {
         // if user input 1-50, ask category, else reask
+        var msg = ""
         try {
             user_input = int(user_input)
-            start_session(db, phone_number, user_input)
-            set_status(db, phone_number, "difficulty")
-            return show_difficulty()
-        } catch{
-            return show_question_number()
+            if (user_input > 0 && user_input <= 50) {
+                start_session(db, phone_number, user_input)
+                set_status(db, phone_number, "category")
+                return show_categories()
+            }
+        } catch {
+            msg += "Invalid number of questions.\n"
         }
+        return msg + show_question_number()
+    } else if (status == "category") {
+        // if user input between 1-3, ask difficulty
+        msg = ""
+        try {
+            user_input = int(user_input)
+            if (user_input > 0 && user_input <= 8) {
+                set_category(db, phone_number, user_input)
+                set_status(db, phone_number, "difficulty")
+                return show_difficulty()
+            }
+        } catch {
+            msg += "Invalid number of questions.\n"
+        }
+        return msg + show_categories()
+    } else if (status == "difficulty") {
+        // if user input between 1 and 3, start trivia session
+        msg = ""
+        try {
+            user_input = int(user_input)
+            if (user_input > 0 && user_input <= 3) {
+                set_difficulty(db, phone_number, user_input)
+                set_status(db, phone_number, "trivia_time")
+                return show_questions()
+            }
+        } catch {
+            msg += "Invalid difficulty.\n"
+        }
+        return msg + show_difficulty()
     }
+
+
     if (status == "trivia_time") {
         if (check_trivia_answer(db, phone_number, res)) {
             msg = "Great Job!\n"
@@ -78,6 +112,16 @@ function start_session(db, phone_number, num_questions) {
     }
     const res = await db.collection('trivia').doc(phone_number).set(data);
 
+function set_category(db, phone_number, category) {
+    data = {
+        category: get_category(category)
+    }
+    // change status to "start"
+    db.collection("trivia")
+        .doc(phone_number)
+        .doc(session)
+        .set(data)
+}
 
 function set_difficulty(db, phone_number, difficulty) {
     data = {
@@ -105,7 +149,7 @@ function show_difficulty() {
     return difficulty_string
 }
 
-function get_category(db, phone_number, category_num) {
+function get_category(category_num) {
     const list_categories = [
         "General Knowledge",
         "Science & Nature",
