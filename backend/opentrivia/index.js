@@ -7,8 +7,8 @@ const fetchOpenTrivia = (questions, category, difficulty) => {
     if (questions > 0 && questions <= 50) {
         url = "https://opentdb.com/api.php?amount=" + questions;
     };
-    if (category > 0 && category < 9) {
-        url = url + "&category=" + getCategory(category);
+    if (category == "all" || (category => 9 && category <= 28)) {
+        url = url + "&category=" + category;
     };
     if (difficulty === "easy") {
         url = url + "&difficulty" + difficulty;
