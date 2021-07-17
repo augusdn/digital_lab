@@ -2,13 +2,13 @@ const fetch = require("node-fetch");
 
 const fetchOpenTrivia = (questions, category, difficulty) => {
     // the base url (default)
-    var url = "https://opentdb.com/api.php?amount=10";
+    var url = "https://opentdb.com/api.php?amount=5";
     // building url with parameters
     if (questions > 0 && questions <= 50) {
         url = "https://opentdb.com/api.php?amount=" + questions;
     };
     if (category > 0 && category < 9) {
-        url = url + "&category=" + mapToCategory(category);
+        url = url + "&category=" + getCategory(category);
     };
     if (difficulty === "easy") {
         url = url + "&difficulty" + difficulty;
