@@ -57,7 +57,7 @@ function show_difficulty() {
     return difficulty_string
 }
 
-function get_category(db, phone_number, category) {
+function get_category(db, phone_number, category_num) {
     const list_categories = [
         "General Knowledge",
         "Science & Nature",
@@ -78,7 +78,8 @@ function get_category(db, phone_number, category) {
         "Animals": 27,
         "Vehicles": 28,
     }
-    category = index
+    category = list_categories.findIndex(category_num)
+    return categories[category]
 }
 
 function show_categories() {
