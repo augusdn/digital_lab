@@ -6,22 +6,33 @@
     - "trivia_time" - in the process of trivia (check answer + get next q - if done, get score of current round)
     - "" - done with trivia (view total score)
 */
-async function check_status(db, phone_number, res) {
+async function check_status(db, phone_number, user_input) {
     const user = db.collection("trivia")
         .doc(phone_number)
         .get()
     if (!user.exists) {
         // create document
         create_user(db, phone_number)
-        welcomemsg = ""
+        welcomemsg = "Welcome to TrivUs!!! We are very excited to have you on board! Do you want to play trivia?"
         return welcomemsg
     }
     const status = user.data["status"]
     if (status == "") {
-        if (res) {
-            db.collection("trivia")
-                .doc(phone_number)
-            return show_trivia()
+        if (user_input == "1") {
+            set_status(db, phone_number, "start")
+            return show_question_number()
+        } else {
+            return "See you next time"
+        }
+    } else if (status == "start") {
+        // if user input 1-50, ask category, else reask
+        try {
+            user_input = int(user_input)
+            start_session(db, phone_number, user_input)
+            set_status(db, phone_number, "difficulty")
+            return show_difficulty()
+        } catch{
+            return show_question_number()
         }
     }
     if (status == "trivia_time") {
@@ -38,7 +49,7 @@ async function check_status(db, phone_number, res) {
         // show scoreboard
         return scoreboard(db, phone_number)
     } else if (status == "none") {
-        if (res == "start?") {
+        if (user_input == "start?") {
             return start_trivia(db, phone_number)
         } else {
             // show scoreboard
@@ -46,6 +57,43 @@ async function check_status(db, phone_number, res) {
         }
     } 
 }
+
+function set_status(db, phone_number, status) {
+    data = {
+        status: status
+    }
+    // change status to "start"
+    db.collection("trivia")
+        .doc(phone_number)
+        .doc(profile)
+        .set(data)
+}
+function start_session(db, phone_number, num_questions) {
+    const data = {
+        session: {
+            current_score: 0,
+            num_questions: num_questions,
+            quiz_index: 0
+        }
+    }
+    const res = await db.collection('trivia').doc(phone_number).set(data);
+
+
+function set_difficulty(db, phone_number, difficulty) {
+    data = {
+        difficulty: difficulty
+    }
+    // change status to "start"
+    db.collection("trivia")
+        .doc(phone_number)
+        .doc(session)
+        .set(data)
+}
+
+function show_question_number() {
+    return "Great! Lets Play Trivia!\n How many trivia questions would you like (1-50)?"
+}
+
 function show_difficulty() {
     const difficulties = ["easy", "medium", "hard"]
     var difficulty_string = "Pick your difficulty!!!\n"
@@ -103,9 +151,12 @@ function show_categories() {
 }
 
 async function get_trivia_q(db, phone_number, user) {
-    next_q = user["next_question"]
-    // set new next q
-    if (next_q == "" || next_q == null) {
+    next_q = user["session"]["quiz_index"]
+    try {
+        question = user["session"]["quiz_questions"][next_q]
+    } catch {
+        // Out of Questions
+        set_status(db, phone_number, "")
         return current_score(db, phone_number, user)
     }
     return next_q
@@ -119,22 +170,6 @@ function check_trivia_answer(user, user_answer) {
     return False
 }
 
-async function get_trivia_info(db, phone_number, num_questions) {
-    const data = {
-        session: {
-            current_score: 0,
-            num_questions: num_questions
-        }
-    }
-    const res = await db.collection('trivia').doc(phone_number).set(data);
-    const next_q = db.collection("trivia")
-    .doc(phone_number)
-    .get("next_question")
-    if (next_q == null) {
-        return get_trivia_answer(phone_number)
-    }
-    return next_q
-}
 
 async function create_user(db, phone_number) {
     const data = {
