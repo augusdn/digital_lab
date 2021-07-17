@@ -1,0 +1,14 @@
+.customized-btns {
+    width: 80%;
+    height: 120%;
+}
+
+#message {
+    width: 10%;
+    margin: auto;
+    text-align: center;
+}
+
+#question-container {
+    text-align: center;
+}
