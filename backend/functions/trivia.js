@@ -13,6 +13,7 @@ async function check_status(db, phone_number, res) {
     if (!user.exists) {
         // create document
         create_user(db, phone_number)
+        welcomemsg = ""
         return welcomemsg
     }
     const status = user.data["status"]
@@ -38,7 +39,51 @@ async function check_status(db, phone_number, res) {
     } 
 }
 
-function get_category(db, )
+function show_categories(db, phone_number) {
+    const all_categories = [
+        "General Knowledge",
+        "Entertainment: Books",
+        "Entertainment: Film",
+        "Entertainment: Music",
+        "Entertainment: Musicals & Theatres",
+        "Entertainment: Television",
+        "Entertainment: Video Games",
+        "Entertainment: Board Games",
+        "Science & Nature",
+        "Science: Computers",
+        "Science: Mathematics",
+        "Mythology",
+        "Sports",
+        "Geography",
+        "History",
+        "Politics",
+        "Art",
+        "Celebrities",
+        "Animals",
+        "Vehicles",
+        "Entertainment: Comics",
+        "Science: Gadgets",
+        "Entertainment: Japanese Anime & Manga",
+        "Entertainment: Cartoon & Animations"
+    ]
+    const categories = {
+        "General Knowledge": 9,
+        "Science & Nature": 17,
+        "Mythology": 20,
+        "Sports": 21,
+        "Geography": 22,
+        "History": 23,
+        "Animals": 27,
+        "Vehicles": 28,
+    }
+    var category_string = "Pick your category!!!\n"
+    var index = 1
+    for (category in categories) {
+        category_string += str(index) + " - " +  str(category) + "\n"
+    }
+    category_string += "Reply the number next to the category you want or 0 for all categories"
+    return category_string
+}
 
 async function get_trivia_q(db, phone_number, user) {
     next_q = user["next_question"]
@@ -57,13 +102,13 @@ function check_trivia_answer(user, user_answer) {
     return False
 }
 
-async function start_trivia(db, phone_number, questions) {
+async function start_trivia(db, phone_number, num_questions) {
     const data = {
         next_question: "",
         last_answer: "",
         question_list: [],
         current_score: 0,
-        num_questions: questions
+        num_questions: num_questions
     }
     const res = await db.collection('trivia').doc(phone_number).set(data);
     const next_q = db.collection("trivia")
