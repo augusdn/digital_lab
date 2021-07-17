@@ -38,34 +38,18 @@ async function check_status(db, phone_number, res) {
         }
     } 
 }
+function show_difficulty() {
+    const difficulties = ["easy", "medium", "hard"]
+    var difficulty_string = "Pick your difficulty!!!\n"
+    var index = 1
+    for (difficulty in difficulties) {
+        difficulty_string += str(index) + " - " +  str(difficulty) + "\n"
+    }
+    difficulty_string += "Reply the number next to the difficulty you want or 0 for a mixture of all difficulties"
+    return difficulty_string
+}
 
-function show_categories(db, phone_number) {
-    const all_categories = [
-        "General Knowledge",
-        "Entertainment: Books",
-        "Entertainment: Film",
-        "Entertainment: Music",
-        "Entertainment: Musicals & Theatres",
-        "Entertainment: Television",
-        "Entertainment: Video Games",
-        "Entertainment: Board Games",
-        "Science & Nature",
-        "Science: Computers",
-        "Science: Mathematics",
-        "Mythology",
-        "Sports",
-        "Geography",
-        "History",
-        "Politics",
-        "Art",
-        "Celebrities",
-        "Animals",
-        "Vehicles",
-        "Entertainment: Comics",
-        "Science: Gadgets",
-        "Entertainment: Japanese Anime & Manga",
-        "Entertainment: Cartoon & Animations"
-    ]
+function show_categories() {
     const categories = {
         "General Knowledge": 9,
         "Science & Nature": 17,
