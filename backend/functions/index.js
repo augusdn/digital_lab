@@ -13,6 +13,34 @@ app.use(express.urlencoded())
 const admin = require('firebase-admin');
 admin.initializeApp();
 
+async function resetSession(id) {
+    var currentScore = 0;
+    // update the total score by adding the current score to the total score
+    // once it's done, delete the session
+    admin.firestore().collection('user').doc(id).get()
+        .then((doc) => {
+            if (doc.exists) {
+                currentScore = doc.totalScore
+            }
+        })
+        .catch((error) => {
+            console.log(error)
+        })
+        admin.firestore().collection('user').doc(id).set({
+            name: name,
+            totalScore: currentScore,
+            session: ''
+        })
+            .then(() => {
+                console.log("Session reset!")
+                return "Session for " + name + "has been reset.";
+            })
+            .catch((err) => {
+                console.error(err);
+                return "Error occured when resetting total score.";
+            });
+}
+
 async function createUser(id, name) {
     admin.firestore().collection('user').doc(id).set({
         name: name,
