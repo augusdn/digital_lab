@@ -1,9 +1,6 @@
 const functions = require("firebase-functions");
 const express = require("express");
 const app = express();
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = require('twilio')(accountSid, authToken);
 const MessagingResponse = require('twilio').twiml.MessagingResponse;
 
 // // Create and Deploy Your First Cloud Functions
@@ -15,6 +12,15 @@ const MessagingResponse = require('twilio').twiml.MessagingResponse;
 // });
 
 app.post("/trivia/sms", (request, response) => {
+    const twiml = new MessagingResponse();
+    if (request.body.Body == 'hello') {
+        twiml.message('Hi!');
+    } else if (request.body.Body == 'bye') {
+        twiml.message('Goodbye');
+    } else {
+        twiml.message();
+    }
+
     // Welcome message
     msg = "Welcome to TrivUs"
 
@@ -25,9 +31,16 @@ app.post("/trivia/sms", (request, response) => {
     msg = "Your score: ____"
 
     const twiml = new MessagingResponse();
-      twiml.message(msg);
-      res.writeHead(200, { 'Content-Type': 'text/xml' });
-      res.end(twiml.toString());
-  });
+    twiml.message(msg);
+    response.writeHead(200, { 'Content-Type': 'text/xml' });
+    response.end(twiml.toString());
+});
 
+// save current users state
+
+// ask q
+
+// give answer
+
+// score
 
