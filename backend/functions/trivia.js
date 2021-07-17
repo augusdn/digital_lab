@@ -85,7 +85,7 @@ async function check_status(db, phone_number, user_input) {
         }
         return msg + get_trivia_q(db, phone_number, user)
     } else {
-        return scoreboard(user)
+        return scoreboard(db, phone_number, user)
     }
     
 }
@@ -302,7 +302,74 @@ function current_score(user) {
     return "You currently have a score of " + str(score) + "\n"
 }
 
-function scoreboard(user) {
+function scoreboard(db, phone_number, user) {
+    var msg = "Top 10 on TrivTourni"
     const score = user["total_score"]
-    return "You currently have a total score of " + str(score) + "\n"
+    const scoreboard = db.collection("trivia")
+    .orderBy("profile.total_score")
+    var user_in_scoreboard = false
+    var position = 1
+    var index = 1
+    var final_scoreboard = []
+    for (score in scoreboard) {
+        if (index <= 10) {
+            msg += str(index)
+            if (index == 1) {
+                msg += "st"
+            } else if (index == 2) {
+                msg += "nd"
+            } else if (index == 3) {
+                msg += "rd"
+            } else {
+                msg += "th"
+            }
+            msg += " - " + score["username"] + "\n"
+            if (score["phone_number"] == phone_number) {
+                user_in_scoreboard = true
+                position = index
+            }
+        } else if (score["phone_number"] == phone_number) {
+            user_in_scoreboard = false
+            position = index
+        }
+        index += 1
+    }
+    if (user_in_scoreboard) {
+        msg += "Congragulations " + user["username"] + "! You have placed " + str(position)
+        if (position == 1) {
+            msg += "st!!!\n"
+        } else if (position == 2) {
+            msg += "nd!!!\n"
+        } else if (position == 3) {
+            msg += "rd!!!\n"
+        } else {
+            msg += "th!!!\n"
+        }
+    } else {
+        msg += "You are currently coming in " + position 
+        const pos = position.toString()[position.toString().length()]
+        if (pos == "1") {
+            if (position == 11) {
+                msg += "th"
+            } else {
+                msg += "st"
+            }
+        } else if (pos == "2") {
+            if (position == 12) {
+                msg += "th"
+            } else {
+                msg += "nd"
+            }
+        } else if (pos == "3") {
+            if (position == 13) {
+                msg += "th"
+            } else {
+                msg += "rd"
+            }
+        } else {
+            msg += "th"
+        }
+        msg += " place with a total score of " + str(score) + "\n"
+    }
+    return msg
 }
