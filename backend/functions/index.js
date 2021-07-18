@@ -16,7 +16,7 @@ admin.initializeApp();
 
 async function fetchQuestions(n = 10, cat = "", diff = "") {
     var url = "https://opentdb.com/api.php?";
-    const categories = [9, 17, 20, 21, 22, 23, 27, 28];
+    const categories = [9, 17, 21, 22, 23];
     const difficulty = ["easy", "medium", "hard"];
 
     if (0 > n && n > 50) n = 10;
@@ -26,7 +26,7 @@ async function fetchQuestions(n = 10, cat = "", diff = "") {
     url += "amount=" + n;
     if (cat) {
         // console.log(cat);
-        url += "&category=" + categories[cat];
+        url += "&category=" + categories[cat - 1];
     }
     if (diff) {
         // console.log(diff);
@@ -119,7 +119,7 @@ async function getQuizNum(id) {
     })
         .then(() => {
             console.log("get quiz number")
-            return "How many questions do you want? (numbers between 1-50)";
+            return "Welcome to the trivus.\nHow many questions do you want? (numbers between 1-50)";
         })
         .catch((err) => {
             console.error(err);
@@ -137,13 +137,10 @@ async function getQuizCat(id, body) {
             const categories = [
                 "All Categories",
                 "General Knowledge",
-                "Science & Nature",
-                "Mythology",
+                "Science and Nature",
                 "Sports",
                 "Geography",
-                "History",
-                "Animals",
-                "Vehicles"
+                "History"
             ]
             var str = "Select the category!"
             for (let i = 0; i < categories.length; i++) {
@@ -183,7 +180,7 @@ async function getQuizType(id, body) {
     })
         .then(() => {
             console.log("get quiz type");
-            var str = "Choose Quiz Type.\n1 - Multiple Choise\n2 - True/False"
+            var str = "Choose Quiz Type.\n1 - Multiple Choice\n2 - True/False"
             console.log(str)
             return str;
         })
@@ -277,14 +274,14 @@ async function endQuiz(id, quiz, session, ans, index, totalScore) {
     }
     let t = totalScore + score;
     return admin.firestore().collection('user').doc(id).update({
-        status: "ideal",
+        status: "score",
         session: "",
         quiz: "",
         totalScore: t
     })
         .then(() => {
             console.log("quizz over");
-            msg += "Well done, your final score is " + score;
+            msg += "Well done, your final score is " + score + "\nReply back with anything";
             return msg;
         })
         .catch((err) => {
@@ -293,38 +290,34 @@ async function endQuiz(id, quiz, session, ans, index, totalScore) {
         });
 }
 
-async function updateScoreboard() {
-    return admin.firestore().collection('user').orderBy("totalScore", "desc").get()
-        .then((docs) => {
-            console.log('----');
-            let ranking = []
-            let i = 1;
-            docs.forEach(d => {
-                console.log(d.data().name);
-                // console.log(i);
-                ranking.push({
-                    rank: i,
-                    name: d.data().name,
-                    score: d.data().totalScore
-                });
-                i += 1
-            })
-            console.log(ranking);
-            return admin.firestore().collection('scoreboard').doc("rank").set({
-                ranking: ranking,
-                date: Date.now()
-            })
-                .then(() => {
-                    return "Ranking updated"
+async function updateScoreboard(id) {
+    return admin.firestore().collection('user').doc(id).update({
+        status: "ideal"
+    })
+        .then(() => {
+            return admin.firestore().collection('user').orderBy("totalScore", "desc").limit(10).get()
+                .then((docs) => {
+                    console.log('----');
+                    let ranking = []
+                    let i = 1;
+                    let msg = "";
+                    docs.forEach(d => {
+                        console.log(d.data().name);
+                        // console.log(i);
+                        msg += "Rank: " + i + "|Name: " + d.data().name + "|Score: " + d.data().totalScore + "\n";
+                        // ranking.push({
+                        //     rank: i,
+                        //     name: d.data().name,
+                        //     score: d.data().totalScore
+                        // });
+                        i += 1
+                    })
+                    msg += "\nReply back anytime to restart the trivia.";
+                    console.log(msg);
+                    return msg;
                 })
-                .catch((err) => {
-                    return "error";
-                })
-
         })
-        .catch((err) => {
-            console.error(err);
-        });
+        .catch()
 }
 
 async function eventHandler(msg) {
@@ -347,7 +340,6 @@ async function eventHandler(msg) {
     return getUser(msg.From)
         .then((profile) => {
             if (profile.exists) {
-                updateScoreboard();
                 console.log("user exist");
                 console.log(profile.data().status);
                 const status = profile.data().status;
@@ -384,6 +376,10 @@ async function eventHandler(msg) {
                         console.log("finished!");
                         return endQuiz(msg.From, profile.data().quiz, profile.data().session, msg.Body, profile.data().session['index'], profile.data().totalScore);
                         break;
+                    case 'score':
+                        console.log("finished!");
+                        return updateScoreboard(msg.From);
+                        break;
                 }
             }
             else {
@@ -403,11 +399,12 @@ app.post('/', (req, res) => {
     eventHandler(req.body)
         .then((result) => {
             console.log("------------");
+            let msg = result.replace("&", " and ");
             console.log(result);
             res.contentType("text/xml");
             res.send(`
             <Response>
-                <Message>${result}</Message>
+                <Message>${msg}</Message>
             </Response>
         `);
         })
